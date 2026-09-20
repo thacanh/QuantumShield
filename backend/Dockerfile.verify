@@ -1,0 +1,12 @@
+# Isolated Linux verification; no ports are published and no cloud deploy occurs.
+FROM python:3.10.13-slim
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 FORCE_CPU=1 GRADIO_ANALYTICS_ENABLED=False
+WORKDIR /app
+COPY backend/requirements.txt backend/requirements.txt
+# CPU build satisfies torch==2.10.0 without downloading unused CUDA runtimes.
+RUN pip install --no-cache-dir --upgrade pip==26.1.1 \
+    && pip install --no-cache-dir --no-deps torch==2.10.0 --index-url https://download.pytorch.org/whl/cpu \
+    && pip install --no-cache-dir -r backend/requirements.txt \
+    && pip check
+COPY backend/ backend/
+CMD ["python", "-m", "backend.verify_release"]

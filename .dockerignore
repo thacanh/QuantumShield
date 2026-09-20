@@ -1,0 +1,14 @@
+.venv*/
+.uv-cache/
+.python-runtime/
+.npm-cache/
+.git/
+frontend/node_modules/
+frontend/dist/
+**/__pycache__/
+**/*.pyc
+backend/data/*.uint8.npy
+backend/data/*.tmp.npy
+*.log
+.env
+.env.*

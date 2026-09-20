@@ -1,0 +1,43 @@
+# Python caches and local runtime artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv*/
+.uv-cache/
+.python-runtime/
+
+# Frontend dependencies and build output
+node_modules/
+dist/
+dist-ssr/
+.vite/
+.pnpm-store/
+.npm-cache/
+
+# Dataset acceleration caches
+backend/data/*.uint8.npy
+
+# Logs and local environment files
+*.log
+*.local
+.runtime/
+.env
+.env.*
+
+# Editors and operating-system metadata
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.sw?
+
+# Submission documents and Microsoft Word lock files
+*.docx
+~$*
+
+# Publish only the root README; keep specifications and work reports local.
+*.[mM][dD]
+!/README.md
+docs/

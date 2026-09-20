@@ -1,0 +1,23 @@
+name: Keep Hugging Face Space Alive
+
+on:
+  schedule:
+    # Trigger every 45 minutes to keep HF Space from sleeping
+    - cron: '*/45 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping HF Space Health Endpoint
+        run: |
+          TARGET_URL="${{ secrets.BACKEND_URL }}"
+          if [ -z "$TARGET_URL" ]; then
+            echo "::warning ::Secret BACKEND_URL is not set in GitHub repository settings!"
+            echo "Please set secret BACKEND_URL to your Hugging Face Space URL (e.g. https://username-spacename.hf.space/api/health)"
+            exit 0
+          fi
+          echo "Sending ping to $TARGET_URL..."
+          RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" "$TARGET_URL")
+          echo "$RESPONSE"

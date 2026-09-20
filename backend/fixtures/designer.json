@@ -1,0 +1,166 @@
+[
+  {
+    "schema": "quantumshield-system",
+    "version": 1,
+    "id": "681151c4-8178-404c-b4a1-5a6145a5552d",
+    "name": "Direct QKD",
+    "nodes": [
+      {
+        "id": "217ca5f2-a943-4614-851e-3b516f5e415a",
+        "name": "Alice",
+        "type": "participant",
+        "position": {
+          "x": 50,
+          "y": 90
+        },
+        "config": {}
+      },
+      {
+        "id": "f3ec3d22-0467-42f9-b819-336bab805cb7",
+        "name": "Bob",
+        "type": "participant",
+        "position": {
+          "x": 480,
+          "y": 90
+        },
+        "config": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "baf97609-2b2e-459e-a747-fa472eb23b11",
+        "type": "data_link",
+        "source": "217ca5f2-a943-4614-851e-3b516f5e415a",
+        "target": "f3ec3d22-0467-42f9-b819-336bab805cb7",
+        "config": {
+          "protection": "aes_256_gcm",
+          "keySource": "auto"
+        }
+      }
+    ],
+    "qkdSessions": [
+      {
+        "id": "3e188766-398a-4e18-80cd-95bf78a2e86c",
+        "protocol": "direct_bb84",
+        "participantIds": [
+          "217ca5f2-a943-4614-851e-3b516f5e415a",
+          "f3ec3d22-0467-42f9-b819-336bab805cb7"
+        ],
+        "pathIds": [
+          "cc1fcb64-b9fc-4b5a-bfbe-a69bd80ef6a0"
+        ],
+        "config": {
+          "sequenceLength": 8192,
+          "masterSeed": 42,
+          "qberAbortThreshold": 0.11,
+          "securityMarginBits": 32
+        }
+      }
+    ],
+    "quantumPaths": [
+      {
+        "id": "cc1fcb64-b9fc-4b5a-bfbe-a69bd80ef6a0",
+        "sessionId": "3e188766-398a-4e18-80cd-95bf78a2e86c",
+        "source": "217ca5f2-a943-4614-851e-3b516f5e415a",
+        "target": "f3ec3d22-0467-42f9-b819-336bab805cb7",
+        "provider": "simulation",
+        "providerConfig": {
+          "model": "ideal"
+        }
+      }
+    ]
+  },
+  {
+    "schema": "quantumshield-system",
+    "version": 1,
+    "id": "681151c4-8178-404c-b4a1-5a6145a5552d",
+    "name": "Trusted frontend fixture",
+    "nodes": [
+      {
+        "id": "217ca5f2-a943-4614-851e-3b516f5e415a",
+        "name": "Alice",
+        "type": "participant",
+        "position": {
+          "x": 50,
+          "y": 90
+        },
+        "config": {}
+      },
+      {
+        "id": "f3ec3d22-0467-42f9-b819-336bab805cb7",
+        "name": "Bob",
+        "type": "participant",
+        "position": {
+          "x": 480,
+          "y": 90
+        },
+        "config": {}
+      },
+      {
+        "id": "charlie",
+        "name": "Charlie",
+        "type": "key_distributor",
+        "position": {
+          "x": 200,
+          "y": 200
+        },
+        "config": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "baf97609-2b2e-459e-a747-fa472eb23b11",
+        "type": "data_link",
+        "source": "217ca5f2-a943-4614-851e-3b516f5e415a",
+        "target": "f3ec3d22-0467-42f9-b819-336bab805cb7",
+        "config": {
+          "protection": "aes_256_gcm",
+          "keySource": "auto"
+        }
+      }
+    ],
+    "qkdSessions": [
+      {
+        "id": "97ec4935-f59d-4841-8670-d385449eaf97",
+        "protocol": "trusted_distributor",
+        "participantIds": [
+          "217ca5f2-a943-4614-851e-3b516f5e415a",
+          "f3ec3d22-0467-42f9-b819-336bab805cb7"
+        ],
+        "distributorId": "charlie",
+        "pathIds": [
+          "3c3cf7b0-4715-4f03-bfe7-b064f2aacb3b",
+          "fbd56570-b4aa-4fae-94e9-35a87602db00"
+        ],
+        "config": {
+          "sequenceLength": 8192,
+          "masterSeed": 42,
+          "qberAbortThreshold": 0.11,
+          "securityMarginBits": 32
+        }
+      }
+    ],
+    "quantumPaths": [
+      {
+        "id": "3c3cf7b0-4715-4f03-bfe7-b064f2aacb3b",
+        "sessionId": "97ec4935-f59d-4841-8670-d385449eaf97",
+        "source": "charlie",
+        "target": "217ca5f2-a943-4614-851e-3b516f5e415a",
+        "provider": "simulation",
+        "providerConfig": {
+          "model": "ideal"
+        }
+      },
+      {
+        "id": "fbd56570-b4aa-4fae-94e9-35a87602db00",
+        "sessionId": "97ec4935-f59d-4841-8670-d385449eaf97",
+        "source": "charlie",
+        "target": "f3ec3d22-0467-42f9-b819-336bab805cb7",
+        "provider": "simulation",
+        "providerConfig": {
+          "model": "ideal"
+        }
+      }
+    ]
+  }
+]

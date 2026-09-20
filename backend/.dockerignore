@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+data/*.uint8.npy
+data/*.tmp.npy
+*.log
+.env
+.env.*
