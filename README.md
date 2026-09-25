@@ -1,5 +1,61 @@
 # QuantumShield FinEdu
 
+## Phòng học tài chính số
+
+Mở **Phòng học FinEdu & QKD** để chọn một trong ba lộ trình:
+
+- **QKD Lab:** thiết kế và thử nghiệm QKD tự do như trước.
+- **Hóa đơn điện tử & công nợ:** học cách phân biệt hóa đơn, doanh thu và tiền đã thu;
+  chọn các khoản đã thanh toán đúng tham chiếu, tính công nợ rồi gửi bản chụp qua QKD + AES.
+  Bài mẫu: hóa đơn 11 triệu đồng, khoản thu khớp 6 triệu, còn phải thu 5 triệu.
+- **Q-Authorization Vault:** kiểm soát lệnh mẫu 5 tỷ đồng theo số dư khả dụng,
+  hạn mức, người thụ hưởng, tuân thủ giả lập và hai vai trò người lập–người duyệt.
+  Sau khi đạt kiểm soát nghiệp vụ, chạy QKD + AES và xác minh dữ liệu bên nhận.
+  “Được phê duyệt để gửi” không phải đã chuyển tiền hay quyết toán; không thay đổi số dư.
+
+Hai bài tài chính dùng bốn bước **Học → Thực hành → Bảo vệ → Tổng kết**:
+
+1. **Học:** đọc mục tiêu, quy trình và các thẻ kiến thức, rồi bấm **Đã đọc · Bắt đầu xử lý tình huống**.
+2. **Thực hành:** xử lý ba điểm ra quyết định trong tình huống cố định, thay cho biểu mẫu tự nhập số.
+   Mỗi lựa chọn có giải thích đúng/sai ngay; chọn sai có thể thử lại và số lần nhầm được giữ trong phiên.
+   Hóa đơn dạy ghép đúng khoản đã thanh toán, khoản phải thu và trạng thái thu nợ.
+   Vault dạy số dư/hạn mức, tạm giữ khác từ chối, người lập–người duyệt độc lập.
+3. **Bảo vệ:** sau ba quyết định đúng, bấm **Áp dụng kết luận & thiết kế hệ QKD**.
+   Nhánh tiếp diễn nêu rõ hồ sơ đã được rà soát và hai vai trò đồng ý trong tình huống giả lập;
+   trả lời đúng không được coi là phê duyệt ngân hàng thật. Mở quy trình rồi **Chạy QKD + Dữ liệu**.
+   Sau khi có kết quả, xử lý ba điểm kỹ thuật: khóa 192 bit, Eve thụ động và ý nghĩa lần chạy thật.
+   Hai tình huống đầu có nhãn minh họa; câu cuối dùng kết quả đúng phiên/đường của bài học.
+4. **Tổng kết:** xem số điểm đã xử lý đúng trên tổng 6 điểm, số đúng ngay lần đầu, điểm chưa hoàn thành
+   và lời nhắc ôn theo số lần nhầm. Sửa đúng không xóa lịch sử lỗi. Có thể quay lại kiến thức bất cứ lúc nào.
+
+Hóa đơn mẫu có khoản 6 triệu đã thanh toán đúng mã, khoản 3 triệu đang chờ và các khoản sai mã/hoàn đảo.
+Vault có lệnh 5 tỷ, số dư 8 tỷ, hạn mức mỗi giao dịch 6 tỷ và hạn mức ngày còn lại 8 tỷ.
+Nội dung JSON được nạp sẵn vào đúng đường dữ liệu; có thể sửa ghi chú `note`, các trường nghiệp vụ
+phải khớp tình huống. Dữ liệu bài học không được đưa vào file thiết kế.
+Thay thiết kế/nội dung gửi sẽ khiến kết quả cũ không áp dụng cho bản hiện tại. Chạy lại tạo một
+điểm đọc kết quả mới; không cộng điểm hai lần bằng cách bấm lặp một đáp án đã đúng.
+Thí nghiệm bị chặn vẫn có thể hoàn thành bài học nếu người học giải thích đúng kết quả.
+
+Hai bài dùng nguyên Designer API và lõi QKD/FSO/AES hiện có. Kết quả A/B bổ sung
+ngưỡng thu, số phát hiện/xóa, khả năng dùng AES, toàn vẹn và kết luận bài học.
+Để so AI với ngưỡng cố định, giữ cùng sơ đồ, mã phiên/đường, seed, cửa sổ, độ dài,
+công suất, góc và Eve; chỉ đổi chế độ ngưỡng. AI không luôn tạo ra lợi thế trong mọi lần chạy.
+
+Tiến độ từng lộ trình giữ trong bộ nhớ khi chuyển màn hình; tải lại tab sẽ mất bài tập.
+Lưu/nhập/xuất vẫn chỉ chứa thiết kế `SystemGraph` v1, không chứa số liệu tài chính,
+nội dung truyền hoặc khóa. Xóa/thay liên kết của bài học sẽ chặn gửi; dùng **Hoàn tác**
+hoặc **Khôi phục sơ đồ bài học** để khôi phục đúng liên kết, không tự chọn đường khác.
+
+Dữ liệu và vai trò đều giả lập. Thuế suất, hạn mức và quy tắc trạng thái là quy ước
+giáo dục, không dùng kê khai thuế hay ra quyết định ngân hàng. Phần trợ giúp trong bài
+phân biệt các quy ước này với khái niệm tham khảo từ IFRS, BIS/Basel, ISO 20022 và FATF.
+Không có kết nối thanh toán, phân quyền ngân hàng hoặc AML/KYC thật.
+
+Mốc kiểm chứng FinEdu trên Windows: **76 kiểm thử backend, 41 kiểm thử frontend,
+lint và build đạt**. Kiểm thử thêm khóa bước học, thứ tự quyết định, phản hồi/thử lại,
+ghi nhớ lỗi, tổng kết và phân biệt số liệu minh họa với kết quả thực nghiệm.
+Phần cứng Thorlabs chưa được đo thực tế.
+
 ## Visual QKD Lab — tiến độ mở rộng
 
 Workspace Visual QKD Lab đã có System View để tạo/chỉnh node, QKD session,
@@ -68,6 +124,18 @@ AES-256-GCM để bảo vệ nội dung tài chính mẫu.
   có ba nút chọn Low SI, High SI và Light Rain.
 
 ## Chạy dự án
+
+**Demo trên TV cảm ứng / thiết bị cùng mạng:** nhấp đúp `run-lan.bat`.
+Launcher build bản demo rồi mở web trên cổng **5175**, in địa chỉ IP LAN để nhập
+vào trình duyệt TV, ví dụ `http://192.168.2.43:5175`. IP có thể đổi khi đổi Wi-Fi.
+TV và máy tính cần cùng mạng và mạng phải cho phép các thiết bị liên lạc với nhau.
+Giữ cửa sổ launcher khi demo; nhấn Enter để dừng các máy chủ do launcher mở.
+Chạy lại launcher sau khi sửa code để cập nhật bản demo.
+API đi qua `/api` trên cùng địa chỉ web; backend vẫn chỉ nghe tại máy tính.
+Windows Firewall cần cho phép TCP 5175 từ mạng con nội bộ (không cần mở cổng 8000).
+Thiết lập một lần bằng `allow-lan.bat`, chọn **Yes** khi Windows hỏi quyền quản trị.
+Quy tắc chỉ áp dụng cho Node.js trên cổng 5175 và các thiết bị cùng mạng con.
+Mỗi thiết bị có phiên học riêng. Tải lại trang sẽ mất tiến độ trong tab.
 
 **Trên máy Windows này: nhấp đúp `run.bat` ở thư mục gốc.** Backend và web tự chạy,
 trình duyệt mở `http://127.0.0.1:5173`. Giữ cửa sổ chạy; nhấn Enter để dừng các máy chủ

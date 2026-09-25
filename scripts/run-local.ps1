@@ -2,6 +2,7 @@ param(
     [ValidateRange(1024, 65535)][int]$BackendPort = 8000,
     [ValidateRange(1024, 65535)][int]$FrontendPort = 5173,
     [switch]$NoBrowser,
+    [switch]$Lan,
     [switch]$Check
 )
 
@@ -69,6 +70,9 @@ try {
     }
 
     $existingFrontend = Get-LocalResponse $frontendUrl
+    if ($Lan -and $existingFrontend) {
+        throw "Cong $FrontendPort da co web dang chay. Hay dung cua so run-lan.bat cu truoc khi mo lai de dam bao ban demo moi nhat."
+    }
     if ($existingFrontend -and $existingFrontend.Content -match 'QuantumShield FinEdu') {
         Write-Host "Dung web dang chay: $frontendUrl"
     } else {
@@ -77,9 +81,25 @@ try {
         if (-not $nodeCommand) { throw 'Chua co Node.js. Cai Node.js 24 LTS, sau do mo lai run.bat.' }
         $vitePath = Join-Path $frontendRoot 'node_modules\vite\bin\vite.js'
         if (-not (Test-Path -LiteralPath $vitePath)) { throw 'Thieu thu vien frontend. Mo terminal trong frontend va chay npm ci, sau do mo lai run.bat.' }
-        $env:VITE_API_URL = $backendUrl
+        $env:VITE_API_URL = '/api'
+        $env:QKD_API_TARGET = $backendUrl
+        $frontendHost = '127.0.0.1'
+        $viteArguments = @("`"$vitePath`"")
+        if ($Lan) {
+            $frontendHost = '0.0.0.0'
+            Write-Host 'Dang build ban demo LAN...'
+            Push-Location -LiteralPath $frontendRoot
+            try {
+                & $nodeCommand.Source 'node_modules/typescript/bin/tsc' '-b'
+                if ($LASTEXITCODE -ne 0) { throw 'Kiem tra TypeScript that bai.' }
+                & $nodeCommand.Source $vitePath 'build'
+                if ($LASTEXITCODE -ne 0) { throw 'Build web that bai.' }
+            } finally { Pop-Location }
+            $viteArguments += 'preview'
+        }
+        $viteArguments += @('--host', $frontendHost, '--port', "$FrontendPort", '--strictPort')
         $frontendLog = Join-Path $logDirectory "frontend-$FrontendPort.err.log"
-        $frontendProcess = Start-Process -FilePath $nodeCommand.Source -ArgumentList @("`"$vitePath`"", '--host', '127.0.0.1', '--port', "$FrontendPort", '--strictPort') `
+        $frontendProcess = Start-Process -FilePath $nodeCommand.Source -ArgumentList $viteArguments `
             -WorkingDirectory $frontendRoot -WindowStyle Hidden -PassThru `
             -RedirectStandardOutput (Join-Path $logDirectory "frontend-$FrontendPort.out.log") -RedirectStandardError $frontendLog
         $ownedProcesses.Add($frontendProcess)
@@ -88,6 +108,15 @@ try {
 
     Write-Host "San sang: $frontendUrl" -ForegroundColor Green
     Write-Host "API: $backendUrl | Nhat ky: $logDirectory"
+    if ($Lan) {
+        Write-Host 'TV va may tinh can cung mang. Mo mot trong cac dia chi LAN sau tren TV:' -ForegroundColor Cyan
+        [System.Net.NetworkInformation.NetworkInterface]::GetAllNetworkInterfaces() |
+            Where-Object { $_.OperationalStatus -eq 'Up' -and $_.NetworkInterfaceType -ne 'Loopback' -and $_.GetIPProperties().GatewayAddresses.Count -gt 0 } |
+            ForEach-Object { $_.GetIPProperties().UnicastAddresses } |
+            Where-Object { $_.Address.AddressFamily -eq 'InterNetwork' -and $_.Address.ToString() -notlike '169.254.*' } |
+            ForEach-Object { Write-Host "  http://$($_.Address):$FrontendPort" -ForegroundColor Green }
+        Write-Host 'Chi mo cong web cho mang noi bo; API backend van nghe tren 127.0.0.1.'
+    }
     if (-not $NoBrowser -and -not $Check) { Start-Process $frontendUrl }
     if (-not $Check) {
         Write-Host 'Giu cua so nay khi su dung. Nhan Enter de dung cac may chu vua duoc run.bat mo.'

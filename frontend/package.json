@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "test:designer": "node --experimental-strip-types --test tests/designer.test.mjs",
+    "test:designer": "node --experimental-strip-types --test tests/designer.test.mjs tests/learning.test.mjs",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",

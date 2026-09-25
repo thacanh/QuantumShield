@@ -1,5 +1,5 @@
 import { diagnosticText } from '../../i18n/vi';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Connection, NodeChange } from '@xyflow/react';
 import type { Selection, SystemGraph, SystemNodeType } from '../../types/system';
 import SystemCanvas from './system/SystemCanvas';
@@ -12,6 +12,17 @@ import { systemTemplate, type TemplateKind, addDataLink, addSession, attachEve, 
 import { exportDesign, importDesign, MAX_IMPORT_BYTES, STORAGE_KEY } from './system/persistence';
 import '@xyflow/react/dist/style.css';
 import './designer.css';
+import './learning/learning.css';
+import type { LearningExperienceId, LearningScenario, LearningStep, LearningRunObservation } from '../../types/learning';
+import LearningHome from './learning/LearningHome';
+import LearningBriefPanel from './learning/LearningBriefPanel';
+import FinancialExercisePanel from './learning/FinancialExercisePanel';
+import { createLearningScenario } from './learning/scenarioBuilders';
+import { experiences } from './learning/scenarios';
+import { answerDecision, applyFinanceDecisions, emptyProgress, financeDecisions, financeMastered, retryDecision, securityDecisions } from './learning/decisions';
+import { financeReadiness } from './learning/outcomes';
+import DecisionList from './learning/DecisionList';
+import LearningSummary from './learning/LearningSummary';
 
 function loadInitial() {
   try {
@@ -23,14 +34,40 @@ function loadInitial() {
 }
 
 export default function VisualQkdLab({ active = true }: { active?: boolean }) {
-  const [initial] = useState(loadInitial);
+  const [selected, setSelected] = useState<LearningExperienceId | null>(null);
+  const [started, setStarted] = useState<LearningExperienceId[]>([]);
+  const [scenarios, setScenarios] = useState<Partial<Record<LearningExperienceId, LearningScenario>>>({});
+  const start = (id: LearningExperienceId) => {
+    if (!started.includes(id)) {
+      setStarted(previous => [...previous, id]);
+      if (id !== 'qkd_lab') setScenarios(previous => ({ ...previous, [id]: createLearningScenario(id) }));
+    }
+    setSelected(id);
+  };
+  return <>
+    {selected === null && <LearningHome start={start} started={started} />}
+    {selected !== null && <nav className="learning-back"><button onClick={() => setSelected(null)}>← Các lộ trình học</button><span>Tiến độ giữ trong tab · Lưu sơ đồ chỉ lưu thiết kế</span></nav>}
+    {started.map(id => <div key={id} hidden={selected !== id}><GraphWorkspace active={active && selected === id} scenario={scenarios[id]} /></div>)}
+  </>;
+}
+
+function GraphWorkspace({ active, scenario }: { active: boolean; scenario?: LearningScenario }) {
+  const [initial] = useState(() => scenario ? { graph: scenario.graph, dirty: true, notice: 'Sơ đồ và đường dữ liệu đã được gắn với bài học. Dữ liệu tài chính chỉ giữ trong bộ nhớ tab.' } : loadInitial());
+  const [learningContext, setLearningContext] = useState(scenario?.context);
+  const [learningStep, setLearningStep] = useState<LearningStep>('learn');
+  const [learningProgress, setLearningProgress] = useState(emptyProgress);
+  const [learningRun, setLearningRun] = useState<LearningRunObservation>();
+  const learningHeading = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (active && learningContext) learningHeading.current?.scrollIntoView({ block: 'start', behavior: 'instant' });
+  }, [active, learningContext, learningStep]);
   const [editor, setEditor] = useState({ graph: initial.graph, history: [] as SystemGraph[], dirty: initial.dirty });
   const [selection, setSelection] = useState<Selection>(null);
   const [eveChoice, setEveChoice] = useState<{ eveId: string; pathIds: string[] } | null>(null);
   const [template, setTemplate] = useState<TemplateKind>('direct');
   const [view, setView] = useState<'system' | 'protocol'>('system');
   const [protocolSessionId, setProtocolSessionId] = useState('');
-  const openProtocol = (id: string) => { setProtocolSessionId(id); setView('protocol'); };
+  const openProtocol = (id: string) => { if (learningContext && !protectUnlocked) return; setProtocolSessionId(id); setView('protocol'); setLearningStep('protect'); };
   const [notice, setNotice] = useState(initial.notice);
   const [draft, setDraft] = useState<LinkDraft & { revision: number }>({ mode: 'direct_bb84', source: '', target: '', distributor: '', revision: 0 });
   const [importText, setImportText] = useState('');
@@ -39,6 +76,21 @@ export default function VisualQkdLab({ active = true }: { active?: boolean }) {
   const beforeDrag = useRef<SystemGraph | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const { graph } = editor;
+  const protectUnlocked = !!learningContext && learningProgress.applied && financeMastered(learningContext, learningProgress) && financeReadiness(learningContext).ready;
+  const observation = learningRun?.graph === graph && learningRun.context === learningContext ? learningRun.observation : undefined;
+  const financePoints = learningContext ? financeDecisions(learningContext) : [];
+  const securityPoints = learningContext ? securityDecisions(learningContext, observation) : [];
+  const allPoints = [...financePoints, ...securityPoints];
+  const answer = (id: string, option: string) => setLearningProgress(previous => answerDecision(previous, allPoints, id, option, !!observation));
+  const retry = (id: string) => setLearningProgress(previous => retryDecision(previous, id));
+  const applyDecisions = () => {
+    if (!learningContext || !financeMastered(learningContext, learningProgress)) return;
+    if (!learningProgress.applied) {
+      setLearningContext(applyFinanceDecisions(learningContext, learningProgress));
+      setLearningProgress(previous => ({ ...previous, applied: true }));
+    }
+    setLearningStep('protect'); setView('system');
+  };
   const warnings = designWarnings(graph);
   const commit = (next: SystemGraph) => {
     setEveChoice(null);
@@ -112,10 +164,27 @@ export default function VisualQkdLab({ active = true }: { active?: boolean }) {
   const name = (id: string) => graph.nodes.find(n => n.id === id)?.name ?? id;
   return (
     <main className="visual-lab">
-      <header className="lab-header">
-        <div><h2>Thiết kế hệ thống QKD</h2><p>Thiết kế hệ thống · cấu hình đường truyền · khám phá QKD</p></div>
-        <span className="lab-status">{view === 'system' ? 'SƠ ĐỒ HỆ THỐNG' : 'QUY TRÌNH QKD'} · PHÒNG THÍ NGHIỆM QKD</span>
+      <header className="lab-header" ref={learningHeading}>
+        <div><h2>{learningContext ? experiences.find(e => e.id === learningContext.experienceId)?.title : 'Thiết kế hệ thống QKD'}</h2><p>{learningContext ? 'Học nghiệp vụ · thực hành · bảo vệ dữ liệu · giải thích kết quả' : 'Thiết kế hệ thống · cấu hình đường truyền · khám phá QKD'}</p></div>
+        <span className="lab-status">{learningContext ? 'HỌC QUA QUYẾT ĐỊNH' : view === 'system' ? 'SƠ ĐỒ HỆ THỐNG' : 'QUY TRÌNH QKD'}</span>
       </header>
+      {learningContext && <>
+        <nav className="learning-stepper" aria-label="Các bước bài học">{([
+          ['learn', '① Học', false], ['practice', '② Thực hành', !learningProgress.read],
+          ['protect', '③ Bảo vệ', !protectUnlocked], ['summary', '④ Tổng kết', false],
+        ] as const).map(([step, label, disabled]) => <button key={step} disabled={disabled} aria-pressed={learningStep === step} onClick={() => setLearningStep(step)}>{label}</button>)}</nav>
+        {!protectUnlocked && <p className="decision-hint">Bước Bảo vệ mở sau khi bạn đọc kiến thức, xử lý đúng ba quyết định nghiệp vụ và áp dụng kết luận.</p>}
+        <div hidden={learningStep !== 'learn'}><LearningBriefPanel context={learningContext} start={() => { setLearningProgress(previous => ({ ...previous, read: true })); setLearningStep('practice'); }} /></div>
+        <div hidden={learningStep !== 'practice'}><FinancialExercisePanel context={learningContext} progress={learningProgress} points={financePoints} answer={answer} retry={retry} protect={applyDecisions} /></div>
+        <div hidden={learningStep !== 'summary'}><LearningSummary points={allPoints} progress={learningProgress} observation={observation} review={() => setLearningStep('learn')} practice={() => setLearningStep(learningProgress.read ? 'practice' : 'learn')} protect={() => { if (protectUnlocked) { setLearningStep('protect'); setView('protocol'); } }} /></div>
+      </>}
+      <div hidden={!!learningContext && (learningStep !== 'protect' || !protectUnlocked)}>
+      {learningContext && <section className="learning-protect-intro"><h3>03 · Bảo vệ dữ liệu từ quyết định của bạn</h3><p>✓ Kiểm soát nghiệp vụ đã hoàn tất trong tình huống giả lập. Khám phá sơ đồ bên dưới, rồi mở Quy trình QKD và chạy QKD + Dữ liệu. Sau lần chạy, trả lời các câu hỏi kỹ thuật và xem tổng kết.</p><button onClick={() => openProtocol(learningContext.bindings.sessionId)}>Mở quy trình và chạy thí nghiệm →</button></section>}
+      <div className="lab-toolbar" aria-label="Chế độ Visual Lab">
+        <button aria-pressed={view === 'system'} onClick={() => setView('system')}>Sơ đồ hệ thống</button>
+        <button aria-pressed={view === 'protocol'} onClick={() => setView('protocol')}>Quy trình QKD</button>
+        {scenario && <button onClick={() => { replace(scenario.graph); setNotice('Đã khôi phục đúng các liên kết của bài học. Dữ liệu bài tập được giữ nguyên.'); }}>Khôi phục sơ đồ bài học</button>}
+      </div>
       <div className="lab-toolbar">
         <label>Tên sơ đồ<input aria-label="Tên sơ đồ" maxLength={200} value={graph.name} onChange={e => commit({ ...graph, name: e.target.value })} /></label>
         <button onClick={() => { replace(emptyGraph()); setNotice('Đã tạo sơ đồ trống. Có thể Hoàn tác.'); }}>Sơ đồ mới</button>
@@ -129,10 +198,6 @@ export default function VisualQkdLab({ active = true }: { active?: boolean }) {
         <span className="lab-save-state">{editor.dirty ? 'Chưa lưu' : 'Đã lưu'}</span>
       </div>
       <p className="lab-message" role="status">{notice}</p>
-      <div className="lab-toolbar" aria-label="Chế độ Visual Lab">
-        <button aria-pressed={view === 'system'} onClick={() => setView('system')}>Sơ đồ hệ thống</button>
-        <button aria-pressed={view === 'protocol'} onClick={() => setView('protocol')}>Quy trình QKD</button>
-      </div>
       {showImport && <section className="lab-transfer">
         <h2>Nhập thiết kế</h2><p>JSON cấu trúc quantumshield-visual-lab v1 · tối đa 2 MB. Tệp sai sẽ không thay sơ đồ hiện tại.</p>
         <textarea aria-label="JSON cần nhập" value={importText} onChange={e => setImportText(e.target.value)} placeholder="Dán JSON thiết kế tại đây" />
@@ -163,7 +228,7 @@ export default function VisualQkdLab({ active = true }: { active?: boolean }) {
             <button onClick={() => setEveChoice(null)}>Hủy chọn nhánh</button>
           </section>}
           <div className="lab-canvas-heading"><h2>Vùng vẽ hệ thống</h2><span>━━→ QKD &nbsp; ┄ Eve–đầu thu (rE) &nbsp; ┄→ Dữ liệu</span></div>
-          {active && view === 'system' && <SystemCanvas key={graph.id} graph={graph} selection={selection} select={setSelection} move={move} connect={connect} addNode={addNode} openProtocol={openProtocol}
+          {active && (!learningContext || learningStep === 'protect' && protectUnlocked) && view === 'system' && <SystemCanvas key={graph.id} graph={graph} selection={selection} select={setSelection} move={move} connect={connect} addNode={addNode} openProtocol={openProtocol}
             onDragStart={() => { beforeDrag.current = graph; }} onDragStop={() => {
               const previous = beforeDrag.current; beforeDrag.current = null;
               if (previous) setEditor(current => ({ ...current, history: [...current.history, previous].slice(-30) }));
@@ -184,7 +249,14 @@ export default function VisualQkdLab({ active = true }: { active?: boolean }) {
         <p>Mở Quy trình QKD để chạy QKD lý tưởng/FSO hoặc Thorlabs đo thủ công và truyền dữ liệu bằng khóa của lần chạy đó.</p>
       </section>
       </div>
-      <div hidden={view !== 'protocol'}><ProtocolWorkspace graph={graph} sessionId={protocolSessionId} choose={setProtocolSessionId} change={commit} active={active && view === 'protocol'} /></div>
+      <div hidden={view !== 'protocol'}><ProtocolWorkspace graph={graph} sessionId={protocolSessionId} choose={setProtocolSessionId} change={commit} active={active && view === 'protocol' && (!learningContext || learningStep === 'protect' && protectUnlocked)} learningContext={learningContext} learningUnlocked={protectUnlocked} onLearningRun={setLearningRun} />
+        {learningContext && <section className="learning-exercise" aria-label="Quyết định sau thí nghiệm">
+          <h2>Quan sát rồi đưa ra kết luận</h2><p>{observation ? `Đã có kết quả thực nghiệm ${observation.id.slice(0, 8)}. Hai tình huống đầu là ví dụ minh họa; câu cuối dùng chính kết quả của bạn.` : 'Chạy QKD + Dữ liệu với thiết kế hiện tại để mở các điểm quyết định kỹ thuật. Thu nhận đến QBER hoặc kết quả cũ chưa đủ cho bước này.'}</p>
+          <DecisionList points={securityPoints} progress={learningProgress} enabled={!!observation && protectUnlocked} answer={answer} retry={retry} />
+          <div className="learning-next"><button onClick={() => setLearningStep('summary')}>Xem tổng kết bài học →</button></div>
+        </section>}
+      </div>
+      </div>
     </main>
   );
 }
